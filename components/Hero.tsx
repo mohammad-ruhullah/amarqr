@@ -27,9 +27,9 @@ export default function Hero() {
             </h1>
             <p className="text-muted text-base md:text-lg max-w-md text-center md:text-left animate-reveal" style={{ animationDelay: "0.4s" }}>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-secondary font-semibold">
-                Create free QR codes. They never expire, they never die.
+                Create free QR codes. No fear of expiry.
               </span>{" "}
-              No login. No paywall. No hidden charges. Made with love for the community.
+              No login. No paywall. No charges. Just your permanent QR.
             </p>
           </div>
           <div className="max-md:hidden flex items-center justify-center md:self-stretch animate-reveal" style={{ animationDelay: "0.3s" }}>
