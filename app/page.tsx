@@ -8,7 +8,9 @@ export default function Home() {
     <>
       <main>
         <Hero />
-        <QRBuilder />
+        <div className="max-md:hidden">
+          <QRBuilder />
+        </div>
         <StatsSection />
       </main>
       <Footer />

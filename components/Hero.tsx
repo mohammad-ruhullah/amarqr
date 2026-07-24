@@ -32,7 +32,7 @@ export default function Hero() {
               No login. No paywall. No hidden charges. Made with love for the community.
             </p>
           </div>
-          <div className="flex items-center justify-center md:self-stretch animate-reveal" style={{ animationDelay: "0.3s" }}>
+          <div className="max-md:hidden flex items-center justify-center md:self-stretch animate-reveal" style={{ animationDelay: "0.3s" }}>
             <FloatingQR />
           </div>
         </div>
