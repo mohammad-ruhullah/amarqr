@@ -32,7 +32,7 @@ export default function Hero() {
               No login. No paywall. No charges. Just your permanent QR.
             </p>
           </div>
-          <div className="max-md:hidden flex items-center justify-center md:self-stretch animate-reveal" style={{ animationDelay: "0.3s" }}>
+          <div className="flex items-center justify-center md:self-stretch animate-reveal" style={{ animationDelay: "0.3s" }}>
             <FloatingQR />
           </div>
         </div>

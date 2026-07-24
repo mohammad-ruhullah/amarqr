@@ -50,6 +50,8 @@ export default function FloatingQRModules() {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) return;
 
+    const isMobileAnim = window.innerWidth < 768;
+
     const style = getComputedStyle(document.documentElement);
     const primary = style.getPropertyValue("--color-primary").trim() || "#08415c";
     const r = parseInt(primary.slice(1, 3), 16);
@@ -108,11 +110,11 @@ export default function FloatingQRModules() {
 
     const parent = canvas.parentElement!;
     const rect = parent.getBoundingClientRect();
-    const isMobile = rect.width < 640;
+    const isCompact = rect.width < 640;
     const count = qrTargets.length;
     const halfMs = matrixSize / 2;
-    const totalMultiplier = isMobile ? 3 : 8;
-    const qrSetCount = isMobile ? 2 : 6;
+    const totalMultiplier = isCompact ? 3 : 8;
+    const qrSetCount = isCompact ? 2 : 6;
 
     const particles: Particle[] = [];
 
@@ -184,8 +186,10 @@ export default function FloatingQRModules() {
       mouseX = -9999;
       mouseY = -9999;
     };
-    window.addEventListener("mousemove", onMouse);
-    document.addEventListener("mouseleave", onLeave);
+    if (!isMobileAnim) {
+      window.addEventListener("mousemove", onMouse);
+      document.addEventListener("mouseleave", onLeave);
+    }
 
     const animate = (time: number) => {
       const w = canvas.width / (window.devicePixelRatio || 1);
@@ -194,65 +198,77 @@ export default function FloatingQRModules() {
       const now = time / 1000;
 
       for (const p of particles) {
-        const dx = mouseX - p.x;
-        const dy = mouseY - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (isMobileAnim) {
+          const driftX = p.homeX + Math.sin(now * 0.3 + p.phase) * 40;
+          const driftY = p.homeY + Math.cos(now * 0.4 + p.phase) * 40;
+          p.vx += (driftX - p.x) * 0.003;
+          p.vy += (driftY - p.y) * 0.003;
 
-        if (p.isQr) {
-          // QR particles: attracted to mouse
-          if (dist < ATTRACT_RADIUS) {
-            const strength = 1 - dist / ATTRACT_RADIUS;
-            const tx = mouseX + (p.qrCol - halfMs) * MODULE_SIZE;
-            const ty = mouseY + (p.qrRow - halfMs) * MODULE_SIZE;
-
-            p.vx += (tx - p.x) * LERP_SPEED * strength;
-            p.vy += (ty - p.y) * LERP_SPEED * strength;
-
-            const opacity = p.baseOpacity * (0.4 + strength * 0.6);
-            const eyeBoost = p.inEye ? 1 : 0;
-            const s = MODULE_SIZE * 1.2 + eyeBoost;
-            p.drawSize = s;
-            ctx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
-            ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
-          } else {
-            const driftX = p.homeX + Math.sin(now * 0.3 + p.phase) * 40;
-            const driftY = p.homeY + Math.cos(now * 0.4 + p.phase) * 40;
-            p.vx += (driftX - p.x) * 0.003;
-            p.vy += (driftY - p.y) * 0.003;
-
-            const s = p.size;
-            p.drawSize = s;
-            const opacity = p.baseOpacity * 0.5;
-            ctx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
-            ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
-          }
+          const s = p.size;
+          const opacity = p.baseOpacity * 0.5;
+          ctx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
+          ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
         } else {
-          // Extra particles: repelled from mouse
-          if (dist < REPEL_RADIUS) {
-            const strength = 1 - dist / REPEL_RADIUS;
-            const repelX = p.x - mouseX;
-            const repelY = p.y - mouseY;
-            const repelDist = Math.sqrt(repelX * repelX + repelY * repelY);
-            if (repelDist > 1) {
-              p.vx += (repelX / repelDist) * REPEL_STRENGTH * strength;
-              p.vy += (repelY / repelDist) * REPEL_STRENGTH * strength;
+          const dx = mouseX - p.x;
+          const dy = mouseY - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (p.isQr) {
+            // QR particles: attracted to mouse
+            if (dist < ATTRACT_RADIUS) {
+              const strength = 1 - dist / ATTRACT_RADIUS;
+              const tx = mouseX + (p.qrCol - halfMs) * MODULE_SIZE;
+              const ty = mouseY + (p.qrRow - halfMs) * MODULE_SIZE;
+
+              p.vx += (tx - p.x) * LERP_SPEED * strength;
+              p.vy += (ty - p.y) * LERP_SPEED * strength;
+
+              const opacity = p.baseOpacity * (0.4 + strength * 0.6);
+              const eyeBoost = p.inEye ? 1 : 0;
+              const s = MODULE_SIZE * 1.2 + eyeBoost;
+              p.drawSize = s;
+              ctx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
+              ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
+            } else {
+              const driftX = p.homeX + Math.sin(now * 0.3 + p.phase) * 40;
+              const driftY = p.homeY + Math.cos(now * 0.4 + p.phase) * 40;
+              p.vx += (driftX - p.x) * 0.003;
+              p.vy += (driftY - p.y) * 0.003;
+
+              const s = p.size;
+              p.drawSize = s;
+              const opacity = p.baseOpacity * 0.5;
+              ctx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
+              ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
             }
-
-            p.drawSize = p.size * (1 + strength * 0.3);
-            const opacity = p.baseOpacity * (0.3 + strength * 0.4);
-            ctx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
-            ctx.fillRect(p.x - p.drawSize / 2, p.y - p.drawSize / 2, p.drawSize, p.drawSize);
           } else {
-            const driftX = p.homeX + Math.sin(now * 0.3 + p.phase) * 40;
-            const driftY = p.homeY + Math.cos(now * 0.4 + p.phase) * 40;
-            p.vx += (driftX - p.x) * 0.003;
-            p.vy += (driftY - p.y) * 0.003;
+            // Extra particles: repelled from mouse
+            if (dist < REPEL_RADIUS) {
+              const strength = 1 - dist / REPEL_RADIUS;
+              const repelX = p.x - mouseX;
+              const repelY = p.y - mouseY;
+              const repelDist = Math.sqrt(repelX * repelX + repelY * repelY);
+              if (repelDist > 1) {
+                p.vx += (repelX / repelDist) * REPEL_STRENGTH * strength;
+                p.vy += (repelY / repelDist) * REPEL_STRENGTH * strength;
+              }
 
-            const s = p.size;
-            p.drawSize = s;
-            const opacity = p.baseOpacity * 0.5;
-            ctx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
-            ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
+              p.drawSize = p.size * (1 + strength * 0.3);
+              const opacity = p.baseOpacity * (0.3 + strength * 0.4);
+              ctx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
+              ctx.fillRect(p.x - p.drawSize / 2, p.y - p.drawSize / 2, p.drawSize, p.drawSize);
+            } else {
+              const driftX = p.homeX + Math.sin(now * 0.3 + p.phase) * 40;
+              const driftY = p.homeY + Math.cos(now * 0.4 + p.phase) * 40;
+              p.vx += (driftX - p.x) * 0.003;
+              p.vy += (driftY - p.y) * 0.003;
+
+              const s = p.size;
+              p.drawSize = s;
+              const opacity = p.baseOpacity * 0.5;
+              ctx.fillStyle = `rgba(${r},${g},${b},${opacity})`;
+              ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
+            }
           }
         }
 
@@ -270,8 +286,10 @@ export default function FloatingQRModules() {
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("mousemove", onMouse);
-      document.removeEventListener("mouseleave", onLeave);
+      if (!isMobileAnim) {
+        window.removeEventListener("mousemove", onMouse);
+        document.removeEventListener("mouseleave", onLeave);
+      }
     };
   }, []);
 

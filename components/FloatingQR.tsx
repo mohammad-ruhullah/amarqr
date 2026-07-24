@@ -108,6 +108,7 @@ export default function FloatingQR() {
     if (!ctx) return;
 
     const parentRect = canvas.parentElement?.getBoundingClientRect() || { width: 420 };
+    const isMobile = window.innerWidth < 768;
     const displaySize = Math.min(parentRect.width, 420);
     const dpr = window.devicePixelRatio || 1;
     canvas.width = displaySize * dpr;
@@ -205,11 +206,13 @@ export default function FloatingQR() {
       mouseY = -9999;
       isLocked = false;
     };
-    window.addEventListener("mousemove", onMouse);
-    window.addEventListener("touchmove", onTouch, { passive: true });
-    window.addEventListener("touchstart", onTouch, { passive: true });
-    window.addEventListener("touchend", onLeave);
-    document.addEventListener("mouseleave", onLeave);
+    if (!isMobile) {
+      window.addEventListener("mousemove", onMouse);
+      window.addEventListener("touchmove", onTouch, { passive: true });
+      window.addEventListener("touchstart", onTouch, { passive: true });
+      window.addEventListener("touchend", onLeave);
+      document.addEventListener("mouseleave", onLeave);
+    }
 
     const buildQuadfoilPath = (scaleFactor: number = 1) => {
       const bx = bMinX, by = bMinY;
@@ -275,112 +278,39 @@ export default function FloatingQR() {
 
     const qfoilCenter = { x: (bMinX + bMaxX) / 2, y: (bMinY + bMaxY) / 2 };
 
-    const animate = (time: number) => {
-      const t = time / 1000;
-      ctx.clearRect(0, 0, displaySize, displaySize);
+    const drawEyes = (t: number) => {
+      for (const eye of eyes) {
+        const ecx = start + (eye.baseC + 3.5) * mSize;
+        const ecy = start + (eye.baseR + 3.5) * mSize;
+        const outerR = 3.5 * mSize - 1;
+        const gapR = 2.5 * mSize + 1;
 
-      // White background matching the border shape
-      buildQuadfoilPath(1);
-      ctx.fillStyle = "#ffffff";
-      ctx.fill();
+        ctx.fillStyle = primary;
+        ctx.beginPath();
+        ctx.arc(ecx, ecy, outerR, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Build quadfoil path for hit-testing (slightly smaller than the white area)
-      buildQuadfoilPath(0.93);
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(ecx, ecy, gapR, 0, Math.PI * 2);
+        ctx.fill();
 
-      // Check if mouse is inside the hit-test boundary
-      isLocked = ctx.isPointInPath(mouseX, mouseY);
+        const starOuterR = mSize * 1.5;
+        const starInnerR = mSize * 1.35;
+        const starRounded = mSize * 0.55;
+        const starAngle = t * 0.8;
 
-      // Rebuild quadfoil slightly smaller for particle bounce boundary (inside the border)
-      buildQuadfoilPath(0.94);
-
-      // Breathing cycle: 8s total — wait at formed 70%, break slow 20%, organize fast 10%
-      const cyclePos = (t / 8) % 1;
-      const waitRatio = 0.70;
-      const breakRatio = 0.20;
-      let scale: number;
-      if (isLocked) {
-        scale = 1;
-      } else if (cyclePos < waitRatio) {
-        scale = 1; // wait at formed
-      } else if (cyclePos < waitRatio + breakRatio) {
-        scale = 1 + 3 * ((cyclePos - waitRatio) / breakRatio); // 1→4 slow (break)
-      } else {
-        scale = 4 - 3 * ((cyclePos - waitRatio - breakRatio) / (1 - waitRatio - breakRatio)); // 4→1 fast (organize)
+        ctx.save();
+        ctx.translate(eye.cx, eye.cy);
+        ctx.rotate(starAngle);
+        ctx.fillStyle = accent;
+        roundedStar(ctx, 0, 0, starOuterR, starInnerR, 12, starRounded);
+        ctx.fill();
+        ctx.restore();
       }
+    };
 
-      // Update particles
-      const centerQR = { x: qrCenterX, y: qrCenterY };
-
-      for (const p of particles) {
-        const tx = centerQR.x + (p.col - halfMs) * mSize * scale;
-        const ty = centerQR.y + (p.row - halfMs) * mSize * scale;
-        p.vx += (tx - p.x) * LERP_SPEED;
-        p.vy += (ty - p.y) * LERP_SPEED;
-
-        p.vx *= 0.98;
-        p.vy *= 0.98;
-
-        const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-        if (spd > 1.5) { p.vx = (p.vx / spd) * 1.5; p.vy = (p.vy / spd) * 1.5; }
-
-        p.x += p.vx;
-        p.y += p.vy;
-
-        // Bounce off quadfoil boundary
-        let bx = p.x + p.s / 2;
-        let by = p.y + p.s / 2;
-        if (!ctx.isPointInPath(bx, by)) {
-          let count = 0;
-          do {
-            const dx = qfoilCenter.x - p.x;
-            const dy = qfoilCenter.y - p.y;
-            p.x += dx * 0.15;
-            p.y += dy * 0.15;
-            bx = p.x + p.s / 2;
-            by = p.y + p.s / 2;
-            count++;
-          } while (!ctx.isPointInPath(bx, by) && count < 60);
-          if (count >= 60) {
-            p.x = Math.max(20, Math.min(p.x, 400));
-            p.y = Math.max(20, Math.min(400, p.y));
-          }
-          p.vx = -p.vx * 0.5;
-          p.vy = -p.vy * 0.5;
-        }
-      }
-
-      // Stroke border (on top)
-      buildQuadfoilPath();
-      ctx.strokeStyle = primary;
-      ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.25;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      const drawShape = (x: number, y: number, s: number, color: string, shape: Shape) => {
-        const c = ctx!;
-        c.fillStyle = color;
-        const cx = x + s / 2;
-        const cy = y + s / 2;
-        const r = s / 2;
-
-        switch (shape) {
-          case "circle":
-            c.beginPath();
-            c.arc(cx, cy, r, 0, Math.PI * 2);
-            c.fill();
-            break;
-          case "star":
-            c.save();
-            c.translate(cx, cy);
-            roundedStar(c, 0, 0, r * 2.0, r * 1.6, 12, r * 0.5);
-            c.fill();
-            c.restore();
-            break;
-        }
-      };
-
-      // Draw particles
+    const drawParticles = () => {
       const starPositions: { x: number; y: number }[] = [];
       for (const p of particles) {
         if (p.shape !== "star") continue;
@@ -403,37 +333,113 @@ export default function FloatingQR() {
         }
         if (!overlapping) drawShape(p.x, p.y, p.s, primary, p.shape);
       }
+    };
 
-      // Eyes — fully rounded (100%)
-      for (const eye of eyes) {
-        const ecx = start + (eye.baseC + 3.5) * mSize;
-        const ecy = start + (eye.baseR + 3.5) * mSize;
-        const outerR = 3.5 * mSize - 1;
-        const gapR = 2.5 * mSize + 1;
+    const drawShape = (x: number, y: number, s: number, color: string, shape: Shape) => {
+      const c = ctx!;
+      c.fillStyle = color;
+      const cx = x + s / 2;
+      const cy = y + s / 2;
+      const r = s / 2;
+      switch (shape) {
+        case "circle":
+          c.beginPath();
+          c.arc(cx, cy, r, 0, Math.PI * 2);
+          c.fill();
+          break;
+        case "star":
+          c.save();
+          c.translate(cx, cy);
+          roundedStar(c, 0, 0, r * 2.0, r * 1.6, 12, r * 0.5);
+          c.fill();
+          c.restore();
+          break;
+      }
+    };
 
-        ctx.fillStyle = primary;
-        ctx.beginPath();
-        ctx.arc(ecx, ecy, outerR, 0, Math.PI * 2);
-        ctx.fill();
+    const animate = (time: number) => {
+      const t = time / 1000;
+      ctx.clearRect(0, 0, displaySize, displaySize);
 
+      if (isMobile) {
+        buildQuadfoilPath(1);
         ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(ecx, ecy, gapR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Star
-        const starOuterR = mSize * 1.5;
-        const starInnerR = mSize * 1.35;
-        const starRounded = mSize * 0.55;
-        const starAngle = t * 0.8;
-
-        ctx.save();
-        ctx.translate(eye.cx, eye.cy);
-        ctx.rotate(starAngle);
-        ctx.fillStyle = accent;
-        roundedStar(ctx, 0, 0, starOuterR, starInnerR, 12, starRounded);
+        for (const p of particles) {
+          p.x = p.ox;
+          p.y = p.oy;
+        }
+        drawParticles();
+        drawEyes(t);
+      } else {
+        // White background matching the border shape
+        buildQuadfoilPath(1);
+        ctx.fillStyle = "#ffffff";
         ctx.fill();
-        ctx.restore();
+
+        buildQuadfoilPath(0.93);
+        isLocked = ctx.isPointInPath(mouseX, mouseY);
+        buildQuadfoilPath(0.94);
+
+        const cyclePos = (t / 8) % 1;
+        const waitRatio = 0.70;
+        const breakRatio = 0.20;
+        let scale: number;
+        if (isLocked) {
+          scale = 1;
+        } else if (cyclePos < waitRatio) {
+          scale = 1;
+        } else if (cyclePos < waitRatio + breakRatio) {
+          scale = 1 + 3 * ((cyclePos - waitRatio) / breakRatio);
+        } else {
+          scale = 4 - 3 * ((cyclePos - waitRatio - breakRatio) / (1 - waitRatio - breakRatio));
+        }
+
+        const centerQR = { x: qrCenterX, y: qrCenterY };
+        for (const p of particles) {
+          const tx = centerQR.x + (p.col - halfMs) * mSize * scale;
+          const ty = centerQR.y + (p.row - halfMs) * mSize * scale;
+          p.vx += (tx - p.x) * LERP_SPEED;
+          p.vy += (ty - p.y) * LERP_SPEED;
+          p.vx *= 0.98;
+          p.vy *= 0.98;
+          const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+          if (spd > 1.5) { p.vx = (p.vx / spd) * 1.5; p.vy = (p.vy / spd) * 1.5; }
+          p.x += p.vx;
+          p.y += p.vy;
+
+          let bx = p.x + p.s / 2;
+          let by = p.y + p.s / 2;
+          if (!ctx.isPointInPath(bx, by)) {
+            let count = 0;
+            do {
+              const dx = qfoilCenter.x - p.x;
+              const dy = qfoilCenter.y - p.y;
+              p.x += dx * 0.15;
+              p.y += dy * 0.15;
+              bx = p.x + p.s / 2;
+              by = p.y + p.s / 2;
+              count++;
+            } while (!ctx.isPointInPath(bx, by) && count < 60);
+            if (count >= 60) {
+              p.x = Math.max(20, Math.min(p.x, 400));
+              p.y = Math.max(20, Math.min(400, p.y));
+            }
+            p.vx = -p.vx * 0.5;
+            p.vy = -p.vy * 0.5;
+          }
+        }
+
+        buildQuadfoilPath();
+        ctx.strokeStyle = primary;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.25;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        drawParticles();
+        drawEyes(t);
       }
 
       rafId = requestAnimationFrame(animate);
@@ -443,11 +449,13 @@ export default function FloatingQR() {
 
     return () => {
       cancelAnimationFrame(rafId);
-      window.removeEventListener("mousemove", onMouse);
-      window.removeEventListener("touchmove", onTouch);
-      window.removeEventListener("touchstart", onTouch);
-      window.removeEventListener("touchend", onLeave);
-      document.removeEventListener("mouseleave", onLeave);
+      if (!isMobile) {
+        window.removeEventListener("mousemove", onMouse);
+        window.removeEventListener("touchmove", onTouch);
+        window.removeEventListener("touchstart", onTouch);
+        window.removeEventListener("touchend", onLeave);
+        document.removeEventListener("mouseleave", onLeave);
+      }
     };
   }, []);
 
