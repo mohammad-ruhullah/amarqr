@@ -13,21 +13,19 @@ export default function Hero() {
             </div>
             <h1 className="text-3xl md:text-5xl font-bold leading-tight text-center md:text-left animate-reveal" style={{ animationDelay: "0.2s" }}>
               <span className="block">
-                Create{" "}
+                Create your{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-secondary">
-                  Free
+                  FREE
                 </span>{" "}
-                QR Codes.
-              </span>
-              <span className="block">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-secondary">
-                  Forever.
-                </span>
+                  Permanent
+                </span>{" "}
+                QR codes.
               </span>
             </h1>
             <p className="text-muted text-base md:text-lg max-w-md text-center md:text-left animate-reveal" style={{ animationDelay: "0.4s" }}>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-secondary font-semibold">
-                Create free QR codes. No fear of expiry.
+                No fear of expiry.
               </span>{" "}
               No login. No paywall. No charges. Just your permanent QR.
             </p>
