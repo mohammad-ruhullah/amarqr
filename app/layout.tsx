@@ -9,7 +9,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Amar QR — Free QR Code Generator Online",
+  title: "Amar QR — Free QR Code Generator Online | amarqr.online",
   description:
     "Create free, customizable QR codes forever. No login, no paywall, no hidden charges. URL, Text, Email, WiFi, vCard and more.",
   keywords: [
@@ -17,6 +17,8 @@ export const metadata: Metadata = {
     "free QR code",
     "custom QR code",
     "Amar QR",
+    "amarqr.online",
+    "amarqr online",
     "QR maker",
     "free QR maker",
   ],
