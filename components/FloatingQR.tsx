@@ -3,6 +3,19 @@
 import { useEffect, useRef } from "react";
 import qrcode from "qrcode";
 
+type BezierSeg = { x0: number; y0: number; cx1: number; cy1: number; cx2: number; cy2: number; x1: number; y1: number };
+
+const QUADFOIL_SEGMENTS: BezierSeg[] = [
+  { x0: 50, y0: 15, cx1: 80, cy1: 35, cx2: 120, cy2: 35, x1: 150, y1: 15 },
+  { x0: 150, y0: 15, cx1: 185, cy1: 20, cx2: 195, cy2: 50, x1: 185, y1: 80 },
+  { x0: 185, y0: 80, cx1: 165, cy1: 110, cx2: 165, cy2: 130, x1: 185, y1: 150 },
+  { x0: 185, y0: 150, cx1: 195, cy1: 180, cx2: 165, cy2: 195, x1: 150, y1: 185 },
+  { x0: 150, y0: 185, cx1: 120, cy1: 165, cx2: 80, cy2: 165, x1: 50, y1: 185 },
+  { x0: 50, y0: 185, cx1: 20, cy1: 195, cx2: 5, cy2: 165, x1: 15, y1: 150 },
+  { x0: 15, y0: 150, cx1: 35, cy1: 120, cx2: 35, cy2: 80, x1: 15, y1: 50 },
+  { x0: 15, y0: 50, cx1: 5, cy1: 20, cx2: 20, cy2: 5, x1: 50, y1: 15 },
+];
+
 type MatrixData = { ms: number; data: number[][] };
 
 function buildMatrix(): MatrixData | null {
@@ -51,7 +64,7 @@ interface DataParticle {
   shape: Shape;
 }
 
-const SHAPES: Shape[] = ["circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "star"];
+const SHAPES: Shape[] = ["circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "star", "star", "star"];
 
 function roundedStar(
   c: CanvasRenderingContext2D,
@@ -108,7 +121,6 @@ export default function FloatingQR() {
     if (!ctx) return;
 
     const parentRect = canvas.parentElement?.getBoundingClientRect() || { width: 420 };
-    const isMobile = window.innerWidth < 768;
     const displaySize = Math.min(parentRect.width, 420);
     const dpr = window.devicePixelRatio || 1;
     canvas.width = displaySize * dpr;
@@ -136,6 +148,35 @@ export default function FloatingQR() {
     const bMinY = start - padT;
     const bMaxX = start + qrSize + padR;
     const bMaxY = start + qrSize + padB;
+
+    const p2 = (x: number, y: number, scaleFactor: number = 1) => {
+      const bx = bMinX, by = bMinY;
+      const bw = bMaxX - bMinX;
+      const sc = bw / 200;
+      const cx = (bMinX + bMaxX) / 2;
+      const cy = (bMinY + bMaxY) / 2;
+      const rawX = bx + x * sc;
+      const rawY = by + y * sc;
+      return [
+        cx + (rawX - cx) * scaleFactor,
+        cy + (rawY - cy) * scaleFactor,
+      ] as const;
+    };
+
+    const buildQuadfoilPath = (scaleFactor: number = 1) => {
+      ctx.beginPath();
+      const [sx, sy] = p2(50, 15, scaleFactor);
+      ctx.moveTo(sx, sy);
+
+      for (const seg of QUADFOIL_SEGMENTS) {
+        const [c1x, c1y] = p2(seg.cx1, seg.cy1, scaleFactor);
+        const [c2x, c2y] = p2(seg.cx2, seg.cy2, scaleFactor);
+        const [ex, ey] = p2(seg.x1, seg.y1, scaleFactor);
+        ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
+      }
+
+      ctx.closePath();
+    };
 
     const particles: DataParticle[] = [];
     for (let r = 0; r < ms; r++) {
@@ -174,109 +215,7 @@ export default function FloatingQR() {
       });
     }
 
-    const halfMs = ms / 2;
     let rafId = 0;
-    let mouseX = -9999;
-    let mouseY = -9999;
-    let isLocked = false;
-    const qrCenterX = (bMinX + bMaxX) / 2;
-    const qrCenterY = (bMinY + bMaxY) / 2;
-    const ATTRACT_RADIUS = 300;
-    const LERP_SPEED = 0.12;
-
-    const toCanvasCoords = (clientX: number, clientY: number) => {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
-    };
-
-    const onPointer = (clientX: number, clientY: number) => {
-      const c = toCanvasCoords(clientX, clientY);
-      mouseX = c.x;
-      mouseY = c.y;
-    };
-
-    const onMouse = (e: MouseEvent) => onPointer(e.clientX, e.clientY);
-    const onTouch = (e: TouchEvent) => {
-      if (e.touches.length > 0) onPointer(e.touches[0].clientX, e.touches[0].clientY);
-    };
-    const onLeave = () => {
-      mouseX = -9999;
-      mouseY = -9999;
-      isLocked = false;
-    };
-    if (!isMobile) {
-      window.addEventListener("mousemove", onMouse);
-      window.addEventListener("touchmove", onTouch, { passive: true });
-      window.addEventListener("touchstart", onTouch, { passive: true });
-      window.addEventListener("touchend", onLeave);
-      document.addEventListener("mouseleave", onLeave);
-    }
-
-    const buildQuadfoilPath = (scaleFactor: number = 1) => {
-      const bx = bMinX, by = bMinY;
-      const bw = bMaxX - bMinX;
-      const sc = bw / 200;
-      const cx = (bMinX + bMaxX) / 2;
-      const cy = (bMinY + bMaxY) / 2;
-      const p2 = (x: number, y: number) => {
-        const rawX = bx + x * sc;
-        const rawY = by + y * sc;
-        return [
-          cx + (rawX - cx) * scaleFactor,
-          cy + (rawY - cy) * scaleFactor,
-        ] as const;
-      };
-
-      ctx.beginPath();
-      const [sx, sy] = p2(50, 15);
-      ctx.moveTo(sx, sy);
-
-      let [c1x, c1y] = p2(80, 35);
-      let [c2x, c2y] = p2(120, 35);
-      let [ex, ey] = p2(150, 15);
-      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
-
-      [c1x, c1y] = p2(185, 20);
-      [c2x, c2y] = p2(195, 50);
-      [ex, ey] = p2(185, 80);
-      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
-
-      [c1x, c1y] = p2(165, 110);
-      [c2x, c2y] = p2(165, 130);
-      [ex, ey] = p2(185, 150);
-      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
-
-      [c1x, c1y] = p2(195, 180);
-      [c2x, c2y] = p2(165, 195);
-      [ex, ey] = p2(150, 185);
-      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
-
-      [c1x, c1y] = p2(120, 165);
-      [c2x, c2y] = p2(80, 165);
-      [ex, ey] = p2(50, 185);
-      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
-
-      [c1x, c1y] = p2(20, 195);
-      [c2x, c2y] = p2(5, 165);
-      [ex, ey] = p2(15, 150);
-      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
-
-      [c1x, c1y] = p2(35, 120);
-      [c2x, c2y] = p2(35, 80);
-      [ex, ey] = p2(15, 50);
-      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
-
-      [c1x, c1y] = p2(5, 20);
-      [c2x, c2y] = p2(20, 5);
-      [ex, ey] = p2(50, 15);
-      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
-
-      ctx.closePath();
-    };
-
-    const qfoilCenter = { x: (bMinX + bMaxX) / 2, y: (bMinY + bMaxY) / 2 };
 
     const drawEyes = (t: number) => {
       for (const eye of eyes) {
@@ -297,24 +236,29 @@ export default function FloatingQR() {
 
         const starOuterR = mSize * 1.5;
         const starInnerR = mSize * 1.35;
-        const starRounded = mSize * 0.55;
+        const starRounded = mSize * 0.7;
         const starAngle = t * 0.8;
 
         ctx.save();
         ctx.translate(eye.cx, eye.cy);
         ctx.rotate(starAngle);
         ctx.fillStyle = accent;
-        roundedStar(ctx, 0, 0, starOuterR, starInnerR, 12, starRounded);
+        roundedStar(ctx, 0, 0, starOuterR, starInnerR, 10, starRounded);
         ctx.fill();
         ctx.restore();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(eye.cx, eye.cy, mSize * 0.35, 0, Math.PI * 2);
+        ctx.fill();
       }
     };
 
-    const drawParticles = () => {
+    const drawParticles = (t: number) => {
       const starPositions: { x: number; y: number }[] = [];
       for (const p of particles) {
         if (p.shape !== "star") continue;
-        drawShape(p.x, p.y, p.s, primary, p.shape);
+        drawShape(p.x, p.y, p.s, primary, p.shape, t);
         starPositions.push({ x: p.x + p.s / 2, y: p.y + p.s / 2 });
       }
       const starClearance = mSize * 1.5;
@@ -331,11 +275,11 @@ export default function FloatingQR() {
             break;
           }
         }
-        if (!overlapping) drawShape(p.x, p.y, p.s, primary, p.shape);
+        if (!overlapping) drawShape(p.x, p.y, p.s, primary, p.shape, t);
       }
     };
 
-    const drawShape = (x: number, y: number, s: number, color: string, shape: Shape) => {
+    const drawShape = (x: number, y: number, s: number, color: string, shape: Shape, t: number = 0) => {
       const c = ctx!;
       c.fillStyle = color;
       const cx = x + s / 2;
@@ -350,7 +294,8 @@ export default function FloatingQR() {
         case "star":
           c.save();
           c.translate(cx, cy);
-          roundedStar(c, 0, 0, r * 2.0, r * 1.6, 12, r * 0.5);
+          c.rotate(t * 0.8);
+          roundedStar(c, 0, 0, r * 2.0, r * 1.6, 10, r * 0.65);
           c.fill();
           c.restore();
           break;
@@ -361,86 +306,23 @@ export default function FloatingQR() {
       const t = time / 1000;
       ctx.clearRect(0, 0, displaySize, displaySize);
 
-      if (isMobile) {
-        buildQuadfoilPath(1);
-        ctx.fillStyle = "#ffffff";
-        ctx.fill();
+      buildQuadfoilPath(1);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.fill();
 
-        for (const p of particles) {
-          p.x = p.ox;
-          p.y = p.oy;
-        }
-        drawParticles();
-        drawEyes(t);
-      } else {
-        // White background matching the border shape
-        buildQuadfoilPath(1);
-        ctx.fillStyle = "#ffffff";
-        ctx.fill();
-
-        buildQuadfoilPath(0.93);
-        isLocked = ctx.isPointInPath(mouseX, mouseY);
-        buildQuadfoilPath(0.94);
-
-        const cyclePos = (t / 8) % 1;
-        const waitRatio = 0.70;
-        const breakRatio = 0.20;
-        let scale: number;
-        if (isLocked) {
-          scale = 1;
-        } else if (cyclePos < waitRatio) {
-          scale = 1;
-        } else if (cyclePos < waitRatio + breakRatio) {
-          scale = 1 + 3 * ((cyclePos - waitRatio) / breakRatio);
-        } else {
-          scale = 4 - 3 * ((cyclePos - waitRatio - breakRatio) / (1 - waitRatio - breakRatio));
-        }
-
-        const centerQR = { x: qrCenterX, y: qrCenterY };
-        for (const p of particles) {
-          const tx = centerQR.x + (p.col - halfMs) * mSize * scale;
-          const ty = centerQR.y + (p.row - halfMs) * mSize * scale;
-          p.vx += (tx - p.x) * LERP_SPEED;
-          p.vy += (ty - p.y) * LERP_SPEED;
-          p.vx *= 0.98;
-          p.vy *= 0.98;
-          const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-          if (spd > 1.5) { p.vx = (p.vx / spd) * 1.5; p.vy = (p.vy / spd) * 1.5; }
-          p.x += p.vx;
-          p.y += p.vy;
-
-          let bx = p.x + p.s / 2;
-          let by = p.y + p.s / 2;
-          if (!ctx.isPointInPath(bx, by)) {
-            let count = 0;
-            do {
-              const dx = qfoilCenter.x - p.x;
-              const dy = qfoilCenter.y - p.y;
-              p.x += dx * 0.15;
-              p.y += dy * 0.15;
-              bx = p.x + p.s / 2;
-              by = p.y + p.s / 2;
-              count++;
-            } while (!ctx.isPointInPath(bx, by) && count < 60);
-            if (count >= 60) {
-              p.x = Math.max(20, Math.min(p.x, 400));
-              p.y = Math.max(20, Math.min(400, p.y));
-            }
-            p.vx = -p.vx * 0.5;
-            p.vy = -p.vy * 0.5;
-          }
-        }
-
-        buildQuadfoilPath();
-        ctx.strokeStyle = primary;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.25;
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-
-        drawParticles();
-        drawEyes(t);
+      for (const p of particles) {
+        p.x = p.ox;
+        p.y = p.oy;
       }
+      drawParticles(t);
+      drawEyes(t);
+
+      buildQuadfoilPath();
+      ctx.strokeStyle = primary;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.25;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
 
       rafId = requestAnimationFrame(animate);
     };
@@ -449,13 +331,6 @@ export default function FloatingQR() {
 
     return () => {
       cancelAnimationFrame(rafId);
-      if (!isMobile) {
-        window.removeEventListener("mousemove", onMouse);
-        window.removeEventListener("touchmove", onTouch);
-        window.removeEventListener("touchstart", onTouch);
-        window.removeEventListener("touchend", onLeave);
-        document.removeEventListener("mouseleave", onLeave);
-      }
     };
   }, []);
 
