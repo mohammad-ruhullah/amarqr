@@ -20,7 +20,7 @@ type MatrixData = { ms: number; data: number[][] };
 
 function buildMatrix(): MatrixData | null {
   try {
-    const qrData = qrcode.create("https://amarqr.online", { errorCorrectionLevel: "H", version: 6 });
+    const qrData = qrcode.create("https://amarqr.online", { errorCorrectionLevel: "H", version: 3 });
     const matrix = qrData.modules;
     const ms = matrix.size;
     const data: number[][] = [];
@@ -64,7 +64,7 @@ interface DataParticle {
   shape: Shape;
 }
 
-const SHAPES: Shape[] = ["circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "star", "star", "star"];
+const SHAPES: Shape[] = ["circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "circle", "star", "star"];
 
 function roundedStar(
   c: CanvasRenderingContext2D,

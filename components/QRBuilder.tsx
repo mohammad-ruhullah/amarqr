@@ -127,7 +127,9 @@ export default function QRBuilder() {
                 setPanelOpen(true);
               }}
               disabled={!generated || !config.content}
-              className={`flex items-center justify-center gap-2 w-full px-4 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-accent/20 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 ${
+              className={`flex items-center justify-center gap-2 w-full px-4 py-3 bg-transparent border-2 border-accent text-accent rounded-xl text-sm font-semibold hover:bg-accent/10 hover:shadow-none transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:active:scale-100 ${
+                generated ? "animate-attention-pulse" : ""
+              } ${
                 revealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               }`}
               style={{ marginTop: "20px", transitionProperty: "all", transitionDuration: "500ms", transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)" }}
