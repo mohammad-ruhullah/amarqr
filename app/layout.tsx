@@ -8,7 +8,10 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
+const siteUrl = "https://amarqr.online";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Amar QR — Free QR Code Generator Online | amarqr.online",
   description:
     "Create free, customizable QR codes forever. No login, no paywall, no hidden charges. URL, Text, Email, WiFi, vCard and more.",
@@ -22,14 +25,85 @@ export const metadata: Metadata = {
     "QR maker",
     "free QR maker",
   ],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: siteUrl,
+  },
   openGraph: {
-    title: "Amar QR — Free QR Code Generator",
-    description: "Create beautiful QR codes for free. Forever.",
+    title: "Amar QR — Free QR Code Generator Online",
+    description:
+      "Create free, customizable QR codes forever. No login, no paywall, no hidden charges. URL, Text, Email, WiFi, vCard and more.",
+    url: siteUrl,
+    siteName: "Amar QR",
+    locale: "en_US",
     type: "website",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Amar QR — Free QR Code Generator",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Amar QR — Free QR Code Generator Online",
+    description:
+      "Create free, customizable QR codes forever. No login, no paywall, no hidden charges.",
+    images: ["/opengraph-image"],
   },
   icons: {
     icon: "/favicon.svg",
   },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${siteUrl}/#organization`,
+      name: "Amar QR",
+      url: siteUrl,
+      logo: `${siteUrl}/favicon.svg`,
+      description:
+        "Create free, customizable QR codes forever. No login, no paywall, no hidden charges.",
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      url: siteUrl,
+      name: "Amar QR — Free QR Code Generator Online",
+      description:
+        "Create free, customizable QR codes forever. URL, Text, Email, WiFi, vCard and more.",
+      publisher: { "@id": `${siteUrl}/#organization` },
+      inLanguage: "en-US",
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${siteUrl}/#softwareapplication`,
+      name: "Amar QR",
+      applicationCategory: "Multimedia",
+      operatingSystem: "Web",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+      url: siteUrl,
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -50,6 +124,10 @@ export default function RootLayout({
           </div>
         </ThemeProvider>
         <Analytics />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </body>
     </html>
   );
