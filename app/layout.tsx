@@ -49,9 +49,9 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og_image.png",
-        width: 4096,
-        height: 4096,
+        url: "/og_image_final.png",
+        width: 1080,
+        height: 1080,
         alt: "Amar QR — Free QR Code Generator",
       },
     ],
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     title: "Amar QR — Free QR Code Generator Online",
     description:
       "Create free, customizable QR codes forever. No login, no paywall, no hidden charges.",
-    images: ["/og_image.png"],
+    images: ["/og_image_final.png"],
   },
   icons: {
     icon: "/favicon.svg",
