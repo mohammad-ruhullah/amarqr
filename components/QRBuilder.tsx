@@ -112,7 +112,7 @@ export default function QRBuilder() {
             <button
               onClick={handleGenerate}
               disabled={!config.content.trim()}
-              className={`flex items-center justify-center gap-2 w-full px-5 py-3.5 bg-gradient-to-r from-primary to-accent text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-accent/20 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 ${
+              className={`flex items-center justify-center gap-2 w-full px-5 py-3.5 bg-primary bg-gradient-to-r from-primary to-accent text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-accent/20 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100 ${
                 revealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               }`}
               style={{ transitionProperty: "all", transitionDuration: "500ms", transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)" }}
