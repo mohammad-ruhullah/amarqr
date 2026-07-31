@@ -8,7 +8,7 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const siteUrl = "https://amarqr.online";
+const siteUrl = "https://www.amarqr.online";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
